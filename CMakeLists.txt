@@ -92,7 +92,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)
 
-add_executable(fastlio_mapping src/laserMapping.cpp include/ikd-Tree/ikd_Tree.cpp src/preprocess.cpp)
+add_executable(fastlio_mapping src/laserMapping.cpp src/constraint_selection.cpp src/plane_map.cpp include/ikd-Tree/ikd_Tree.cpp src/preprocess.cpp)
 target_include_directories(fastlio_mapping PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -114,6 +114,23 @@ else()
 endif()
 
 ament_target_dependencies(fastlio_mapping ${dependencies})
+
+if(BUILD_TESTING)
+  enable_testing()
+  add_executable(frame_imu_test test/frame_imu_test.cpp)
+  target_include_directories(frame_imu_test PRIVATE include)
+  ament_target_dependencies(frame_imu_test rclcpp sensor_msgs)
+  add_test(NAME frame_imu COMMAND frame_imu_test)
+
+  add_executable(constraint_selection_test test/constraint_selection_test.cpp src/constraint_selection.cpp)
+  add_executable(plane_map_test test/plane_map_test.cpp src/plane_map.cpp)
+  add_executable(adaptive_scan_test test/adaptive_scan_test.cpp)
+  foreach(regression constraint_selection_test plane_map_test adaptive_scan_test)
+    target_include_directories(${regression} PRIVATE include)
+    target_link_libraries(${regression} Eigen3::Eigen)
+    add_test(NAME ${regression} COMMAND ${regression})
+  endforeach()
+endif()
 
 # ---------------- Install --------------- #
 install(TARGETS fastlio_mapping

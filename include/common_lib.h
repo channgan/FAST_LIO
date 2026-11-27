@@ -58,9 +58,12 @@ struct MeasureGroup     // Lidar data and imu dates for the curent process
         this->lidar.reset(new PointCloudXYZI());
     };
     double lidar_beg_time;
-    double lidar_end_time;
+    double preprocess_ms = 0.0;
+    rclcpp::Time lidar_begin_stamp{0, 0, RCL_ROS_TIME};
+    rclcpp::Time lidar_end_stamp{0, 0, RCL_ROS_TIME};
     PointCloudXYZI::Ptr lidar;
     deque<sensor_msgs::msg::Imu::ConstSharedPtr> imu;
+    sensor_msgs::msg::Imu::ConstSharedPtr imu_after_end;
 };
 
 struct StatesGroup

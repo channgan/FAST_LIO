@@ -1,7 +1,7 @@
 /**:
     ros__parameters:
         feature_extract_enable: false
-        point_filter_num: 3
+        point_filter_num: 1
         max_iteration: 3
         filter_size_surf: 0.5
         filter_size_map: 0.5
@@ -35,6 +35,20 @@
             extrinsic_R: [ 1., 0., 0.,
                             0., 1., 0.,
                             0., 0., 1.]
+
+            adaptive_scan_en: true
+            association: knn             # knn or planes (experimental local plane map)
+            match_selection: constraint  # all, uniform or constraint
+            match_budget: 600
+            rotation_length: 5.0         # metres per radian for scoring only
+
+        planes:
+            min_points: 6
+            min_spread_ratio: 0.04
+            max_flatness_ratio: 0.05
+            max_residual_ratio: 0.05
+            normal_angle_deg: 15.0
+            normal_group_cap: 120        # zero disables the cap
 
         publish:
             path_en: true                # true: publish Path

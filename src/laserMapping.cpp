@@ -983,7 +983,7 @@ public:
         this->declare_parameter<double>("filter_size_map", 0.5);
         this->declare_parameter<double>("cube_side_length", 200.);
         this->declare_parameter<float>("mapping.det_range", 300.);
-        const auto association = this->declare_parameter<string>("mapping.association", "knn");
+        const auto association = this->declare_parameter<string>("mapping.association", "planes");
         if (association != "knn" && association != "planes")
             throw std::invalid_argument("mapping.association must be knn or planes");
         plane_association = association == "planes";

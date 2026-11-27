@@ -37,7 +37,7 @@
                             0., 0., 1.]
 
             adaptive_scan_en: true
-            association: knn             # knn or planes (experimental local plane map)
+            association: planes          # planes: local plane map; knn: five-neighbor plane fitting
             match_selection: constraint  # all, uniform or constraint
             match_budget: 600
             rotation_length: 5.0         # metres per radian for scoring only

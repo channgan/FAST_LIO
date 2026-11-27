@@ -136,7 +136,6 @@ state_ikfom state_point;
 vect3 pos_lid;
 
 nav_msgs::msg::Path path;
-nav_msgs::msg::Odometry odomAftMapped;
 geometry_msgs::msg::Quaternion geoQuat;
 geometry_msgs::msg::PoseStamped msg_body_pose;
 
@@ -627,22 +626,18 @@ void set_posestamp(T & out)
 
 void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped, std::unique_ptr<tf2_ros::TransformBroadcaster> & tf_br)
 {
+    nav_msgs::msg::Odometry odomAftMapped;
     odomAftMapped.header.frame_id = "camera_init";
     odomAftMapped.child_frame_id = "body";
     odomAftMapped.header.stamp = get_ros_time(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
+    // Position errors are in camera_init; the filter's right-multiplicative rotation errors are in body.
+    Eigen::Matrix<double, 6, 6> to_fixed_axes = Eigen::Matrix<double, 6, 6>::Identity();
+    to_fixed_axes.bottomRightCorner<3, 3>() = state_point.rot.toRotationMatrix();
+    Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>> pose_covariance(
+        odomAftMapped.pose.covariance.data());
+    pose_covariance = to_fixed_axes * kf.get_P().topLeftCorner<6, 6>() * to_fixed_axes.transpose();
     pubOdomAftMapped->publish(odomAftMapped);
-    auto P = kf.get_P();
-    for (int i = 0; i < 6; i ++)
-    {
-        int k = i < 3 ? i + 3 : i - 3;
-        odomAftMapped.pose.covariance[i*6 + 0] = P(k, 3);
-        odomAftMapped.pose.covariance[i*6 + 1] = P(k, 4);
-        odomAftMapped.pose.covariance[i*6 + 2] = P(k, 5);
-        odomAftMapped.pose.covariance[i*6 + 3] = P(k, 0);
-        odomAftMapped.pose.covariance[i*6 + 4] = P(k, 1);
-        odomAftMapped.pose.covariance[i*6 + 5] = P(k, 2);
-    }
 
     geometry_msgs::msg::TransformStamped trans;
     trans.header.frame_id = "camera_init";

@@ -61,6 +61,8 @@
 #include <geometry_msgs/msg/vector3.hpp>
 #include <livox_ros_driver2/msg/custom_msg.hpp>
 #include "preprocess.h"
+#include "adaptive_scan_cloud.hpp"
+#include <stdexcept>
 #include <ikd-Tree/ikd_Tree.h>
 
 #define INIT_TIME           (0.1)
@@ -97,6 +99,7 @@ int    iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudVal
 bool   point_selected_surf[100000] = {0};
 bool   lidar_pushed, flg_first_scan = true, flg_exit = false, flg_EKF_inited;
 bool   scan_pub_en = false, dense_pub_en = false, scan_body_pub_en = false;
+bool   adaptive_scan_pub_en = false;
 bool    is_first_lidar = true;
 
 vector<vector<int>>  pointSearchInd_surf; 
@@ -489,15 +492,22 @@ void publish_frame_world(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::Share
 {
     if(scan_pub_en)
     {
-        PointCloudXYZI::Ptr laserCloudFullRes(dense_pub_en ? feats_undistort : feats_down_body);
-        int size = laserCloudFullRes->points.size();
-        PointCloudXYZI::Ptr laserCloudWorld( \
-                        new PointCloudXYZI(size, 1));
-
-        for (int i = 0; i < size; i++)
+        PointCloudXYZI::VectorType adaptive_points;
+        const auto* source_points = &feats_down_body->points;
+        if (dense_pub_en)
         {
-            RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
-                                &laserCloudWorld->points[i]);
+            source_points = &feats_undistort->points;
+        }
+        else if (adaptive_scan_pub_en)
+        {
+            adaptive_points = fast_lio::adaptive_scan_centroids(feats_undistort->points, filter_size_surf_min, 0.05);
+            source_points = &adaptive_points;
+        }
+
+        PointCloudXYZI::Ptr laserCloudWorld(new PointCloudXYZI(source_points->size(), 1));
+        for (std::size_t i = 0; i < source_points->size(); ++i)
+        {
+            RGBpointBodyToWorld(&(*source_points)[i], &laserCloudWorld->points[i]);
         }
 
         sensor_msgs::msg::PointCloud2 laserCloudmsg;
@@ -798,6 +808,7 @@ public:
         this->declare_parameter<bool>("publish.map_en", false);
         this->declare_parameter<bool>("publish.scan_publish_en", true);
         this->declare_parameter<bool>("publish.dense_publish_en", true);
+        adaptive_scan_pub_en = this->declare_parameter<bool>("publish.adaptive_scan_en", false);
         this->declare_parameter<bool>("publish.scan_bodyframe_pub_en", true);
         this->declare_parameter<int>("max_iteration", 4);
         this->declare_parameter<string>("map_file_path", "");
@@ -843,6 +854,8 @@ public:
         this->get_parameter_or<double>("common.time_offset_lidar_to_imu", time_diff_lidar_to_imu, 0.0);
         this->get_parameter_or<double>("filter_size_corner",filter_size_corner_min,0.5);
         this->get_parameter_or<double>("filter_size_surf",filter_size_surf_min,0.5);
+        if (adaptive_scan_pub_en && (!std::isfinite(filter_size_surf_min) || filter_size_surf_min <= 0.0))
+            throw std::invalid_argument("Adaptive scan output requires a positive finite filter_size_surf");
         this->get_parameter_or<double>("filter_size_map",filter_size_map_min,0.5);
         this->get_parameter_or<double>("cube_side_length",cube_len,200.f);
         this->get_parameter_or<float>("mapping.det_range",DET_RANGE,300.f);

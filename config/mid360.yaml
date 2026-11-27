@@ -42,6 +42,7 @@
             map_en: true                 # true: publish Map cloud
             scan_publish_en:  true       # false: close all the point cloud output
             dense_publish_en: false      # false: low down the points number in a global-frame point clouds scan.
+            adaptive_scan_en: true        # Use two-level voxels for /cloud_registered when dense output is off.
             scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
         pcd_save:

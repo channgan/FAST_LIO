@@ -50,6 +50,10 @@
             normal_angle_deg: 15.0
             normal_group_cap: 120        # zero disables the cap
 
+        flight_output:
+            queue_depth: 32             # Corrected scans buffered by the PX4 output thread
+            max_sample_age_s: 0.5       # Discard stale observations, retaining the actual scan stamp
+
         publish:
             path_en: true                # true: publish Path
             effect_map_en: false         # true: publish Effects
